@@ -34,8 +34,10 @@ for count in range(1, student + 1):
             print('Kunci Jawaban '+str(kj))
             # key = coba.read_txt("key" + str(q) + "-" + str(x) + ".docx")
             prep2 = coba.preprocessing(key[x])
-            ngramprep2 = coba.nGram(prep2)
+            print('prep2')
             print(prep2)
+            ngramprep2 = coba.nGram(prep2)
+            print('ngramprep2')
             print(ngramprep2)
             kj+=1
 #---------------------------------------------------------------------------------------------------------------------------------------------

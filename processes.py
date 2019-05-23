@@ -2,24 +2,17 @@ from pykakasi import kakasi  # untuk proses mengubah karakter jp ke roman
 import re  # regular expression
 import docx2txt
 import tinysegmenter
-from nltk.util import ngrams
 
 kakasi = kakasi()
 
 
 # read documents, .txt or .docx
 def read_txt(doc):
-    # Convert from Windows-1252 to UTF-8
-    # encoded = doc.encode('utf-8')
-    # return open(encoded).read()
-    # return open(doc, encoding='ISO-8859-1').read() #berhasil tapi ga tepat, hrsnya encoder cp1252
-    # return open(doc, encoding='cp1252').read()
-    tes = docx2txt.process(doc)
-    tes1 = tes.splitlines()  # split document to lists on new line
-    tes1 = [x for x in tes1 if not x.isdigit()]  # remove number from words
-    tes1 = [x for x in tes1 if x]  # remove empty list
-    return tes1
-    # return open(doc).read() #ga berhasil grgr tipe encodingnya
+    read1 = docx2txt.process(doc)
+    read = read1.splitlines()  # split document to lists on new line
+    read = [x for x in read if not x.isdigit()]  # remove number from words
+    read = [x for x in read if x]  # remove empty list
+    return read
 
 
 '''
@@ -84,10 +77,15 @@ mulai winnowing
 
 # n gram
 def nGram(text):
-    # ngram = [text[i:i + n] for i in range(len(text) - n + 1)]
     tokens = [text for text in text.split(" ") if text != ""]
+    print('tokens')
     print(tokens)
-    ngramres = list(ngrams(tokens, 5))
+    ngramres=[]
+    for n in range(1,len(tokens)):
+        for num in range(len(tokens)):
+            ngram = ' '.join(tokens[num:num + n])
+            if len(ngram.split()) == n:
+                ngramres.append(ngram)
     return ngramres
 
 
@@ -197,3 +195,26 @@ def winnow(text, p, n, w):
     window = windowing(roll_hash, w)
     fingerprinting = fingerprint(window, w)
     return fingerprinting
+
+#vectorizing
+def vectorizing1(text):
+    """Magic n-gram function fits to vector indices."""
+    indices={}
+    i, inp = len(indices) - 1, text.split()
+    for n in n_list:
+        for x in zip(*[inp[i:] for i in range(n)]):
+            if indices.get(x) == None:
+                i += 1
+                indices.update({x: i})
+
+
+def transform(self, text):
+    """Given a text, convert to a gram vector."""
+    n_list = n_list
+    indices={}
+    v, inp = [0] * len(indices), text.split()
+    for n in n_list:
+        for x in zip(*[inp[i:] for i in range(n)]):
+            if indices.get(x) != None:
+                v[indices[x]] += 1
+    return v
