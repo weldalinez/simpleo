@@ -5,7 +5,7 @@ import tinysegmenter
 from math import *
 
 kakasi = kakasi()
-particles = ['te','masu','wa','ka','ga','ni','no','e','o','wo','to','ya','nado','mo','de','kara','yori','made','kurai','hodo','bakari','toiu','toka','demo','tokoro','node','nara','ba','temo','sae','noni','nagara','tari','desu','desuka','shi','tomo','yara','dano','kurai','dake','nari','koso','tewa','toshite','nomi','yo','kana','na','naa','sa','koto','mono','ze','zo','yara','tara']
+particles = ['ほど','が','か','かしら','かな','かないうちに','がはやいか','から','きり','くらい','けれども','こそ','こと','さ','さえ','し','しか','しかない','すら','ぜ','ぞ','だけ','だけに','だの','たら','たり','で','ては','でも','ても','と','と いう','という','とか','ところ','どころか','ところで','として','とも','ともあろうひと','な','なあ','ながら','など','なら','なり','に','にしては','について','にとって','ね','ねえ','の','ので','のです','のに','のみ','ば','は','ばいい','ばかり','ばかりでなく','ばかりに','へ','ほど','まで','までもない','も','もの','ものか','ものの','や','やいなや','やら','よ','より','わ','を','をする']
 
 # read documents, .txt or .docx
 def read_txt(doc):
@@ -22,45 +22,29 @@ def remove_rep(text):
                  "衆院選は", "衆院選というは", "衆院選というのは",
                  "Uターンは", "Uターンのは", "Uターンというは", "Uターンというのは",
                  "Uターン就職は", "Uターン就職というは", "U-ターン就職というのは"]
-
     word_list = set(rep_words)
     for words in word_list:
         if words in text:
             text = text.replace(words, "")
     return text
 
-
-# mengubah katakana, hiragana, dan kanji ke romaji (romanisasi)
-def to_romaji(text_jpn):
-    text = ' '.join(tinysegmenter.tokenize(text_jpn))
-    kakasi.setMode("H", "a")  # Hiragana ke romaji
-    kakasi.setMode("K", "a")  # Katakana ke romaji
-    kakasi.setMode("J", "a")  # Japanese ke romaji
-    kakasi.setMode("r", "Hepburn")  # default: Hepburn Roman table
-    # kakasi.setMode("s", True) # add space, default: no separator
-    # kakasi.setMode("C", True) # capitalize, default: no capitalize
-    convert = (kakasi.getConverter()).do(text)
-    return convert
-
-
 # filtering
 def filter_text(romaji):
-    filtering = re.sub("\n", "", romaji).casefold()
-    filtering = re.sub("[^A-Za-z0-9]+", " ", filtering)
-    return filtering
-
+    words = re.sub('[ ・。、\n]+', '', romaji)  # replace "・", "。", "、", " ", and "\n" with ""
+    return words
 
 # n gram
 def nGram(text):
     global tokens
-    tokens = [text for text in text.split(" ") if text != ""]
-    print('---\nTokens\n', tokens)
+    tokens = tinysegmenter.tokenize(text)
+    # print('---\ntokens\n', tokens)
     global ngramres
     ngramres=[]
     for n in range(1,len(tokens)):
         for num in range(len(tokens)):
             ngram = ' '.join(tokens[num:num + n])
             if len(ngram.split()) == n:
+                ngram = ngram.replace(" ", "")
                 ngramres.append(ngram)
     i = 0
     while i < len(ngramres):
@@ -70,15 +54,12 @@ def nGram(text):
             i += 1
     return ngramres
 
-
 # run preprocessing
 def preprocessing(text):
     text = remove_rep(text)
-    romaji = to_romaji(text)
-    # print(romaji)
-    filtering = filter_text(romaji)
+    filtering = filter_text(text)
+    # ngram = nGram(filtering)
     return filtering
-
 
 def dictionary(sentence):
     """Magic n-gram function fits to vector indices."""
@@ -114,7 +95,7 @@ def scoring1(text1, text2):
             if sumyy == 0:
                 score = 0
             else:
-                score = sumxy / math.sqrt(sumxx * sumyy)
+                score = sumxy / sqrt(sumxx * sumyy)
             # scores.append(score)
     return score
 
