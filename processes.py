@@ -3,150 +3,107 @@ import re  # regular expression
 import docx2txt
 import tinysegmenter
 from math import *
+from numpy import zeros, sum            # library to create a matrix, etc.
+from scipy.linalg import svd            # library for the svd process
 
 kakasi = kakasi()
-particles = ['te','masu','wa','ka','ga','ni','no','e','o','wo','to','ya','nado','mo','de','kara','yori','made','kurai','hodo','bakari','toiu','toka','demo','tokoro','node','nara','ba','temo','sae','noni','nagara','tari','desu','desuka','shi','tomo','yara','dano','kurai','dake','nari','koso','tewa','toshite','nomi','yo','kana','na','naa','sa','koto','mono','ze','zo','yara','tara']
+# particles = ['ほど','が','か','かしら','かな','かないうちに','がはやいか','から','きり','くらい','けれども','こそ','こと','さ','さえ','し','しか','しかない','すら','ぜ','ぞ','だけ','だけに','だの','たら','たり','で','ては','でも','ても','と','と いう','という','とか','ところ','どころか','ところで','として','とも','ともあろうひと','な','なあ','ながら','など','なら','なり','に','にしては','について','にとって','ね','ねえ','の','ので','のです','のに','のみ','ば','は','ばいい','ばかり','ばかりでなく','ばかりに','へ','ほど','まで','までもない','も','もの','ものか','ものの','や','やいなや','やら','よ','より','わ','を','をする']
+particles = ['hodo','ga','ka','kashira','kana','ka nai uchi ni','ga hayai ka','kara','kiri','kurai','keredomo','koso','koto','sa','sae','shi','shika','shika nai','sura','ze','zo','dake','dake ni','dano','tara','tari','de','tewa','demo','temo','to','to iu','toka','tokoro','dokoro ka','tokoro de','toshite','tomo','tomo aroo hito','na','naa','nagara','nado','nara','nari','ni','ni shite wa','ni tsuite','ni totte','ne','nee','no','node','no desu','noni','nomi','ba','wa','ba','bakari','bakari de naku','bakari ni','e','hodo','made','made mo nai','mo','mono','monoka','mono no','ya','ya ina ya','yara','yo','yori','wa','wo','o','wo suru','o suru']
 
 # read documents, .txt or .docx
 def read_txt(doc):
     read1 = docx2txt.process(doc)
-    read = read1.splitlines()  # split document to lists on new line
-    read = [x for x in read if not x.isdigit()]  # remove number from words
-    read = [x for x in read if x]  # remove empty list
+    read = read1.splitlines()                       # split document to lists on new line
+    read = [x for x in read if not x.isdigit()]     # remove number from words
+    read = [x for x in read if x]                   # remove empty list
     return read
 
-# menghapus kata yang mengulang soal
+# Erase the questions' sentences from answers
 def remove_rep(text):
     rep_words = ["2020年東京オリンピックのマスコットは", "ハラルは", "ハラルというは", "ハラルというのは",
                  "生前退位は", "生前退位というは", "生前退位というのは",
                  "衆院選は", "衆院選というは", "衆院選というのは",
                  "Uターンは", "Uターンのは", "Uターンというは", "Uターンというのは",
                  "Uターン就職は", "Uターン就職というは", "U-ターン就職というのは"]
-
     word_list = set(rep_words)
     for words in word_list:
         if words in text:
             text = text.replace(words, "")
     return text
 
-
-# mengubah katakana, hiragana, dan kanji ke romaji (romanisasi)
+#
 def to_romaji(text_jpn):
     text = ' '.join(tinysegmenter.tokenize(text_jpn))
-    kakasi.setMode("H", "a")  # Hiragana ke romaji
-    kakasi.setMode("K", "a")  # Katakana ke romaji
-    kakasi.setMode("J", "a")  # Japanese ke romaji
-    kakasi.setMode("r", "Hepburn")  # default: Hepburn Roman table
-    # kakasi.setMode("s", True) # add space, default: no separator
-    # kakasi.setMode("C", True) # capitalize, default: no capitalize
+    kakasi.setMode("H","a") # Hiragana ke romaji
+    kakasi.setMode("K","a") # Katakana ke romaji
+    kakasi.setMode("J","a") # Japanese ke romaji
+    kakasi.setMode("r","Hepburn") # default: Hepburn Roman table\
     convert = (kakasi.getConverter()).do(text)
     return convert
 
-
 # filtering
 def filter_text(romaji):
-    filtering = re.sub("\n", "", romaji).casefold()
-    filtering = re.sub("[^A-Za-z0-9]+", " ", filtering)
-    return filtering
+    words = re.sub('[ ・。、\n]+', '', romaji)  # replace "・", "。", "、", " ", and "\n" with ""
+    return words
 
+# run preprocessing
+def preprocessing(text):
+    text = remove_rep(text)
+    filtering = filter_text(text)
+    romaji = to_romaji(filtering)
+    return romaji
 
 # n gram
 def nGram(text):
     global tokens
-    tokens = [text for text in text.split(" ") if text != ""]
-    print('---\nTokens\n', tokens)
+    tokens = tinysegmenter.tokenize(text)
+    # print('---\ntokens\n', tokens)
     global ngramres
     ngramres=[]
     for n in range(1,len(tokens)):
         for num in range(len(tokens)):
             ngram = ' '.join(tokens[num:num + n])
             if len(ngram.split()) == n:
+                ngram = ngram.replace(" ", "")
                 ngramres.append(ngram)
-    i = 0
-    while i < len(ngramres):
-        if ngramres[i] in particles:
-            del ngramres[i]
-        else:
-            i += 1
+
+    # For Scenario 1 (N-Gram without Particles)
+    # i = 0
+    # while i < len(ngramres):
+    #     if ngramres[i] in particles:
+    #         del ngramres[i]
+    #     else:
+    #         i += 1
+
+    # For Scenario 2 (N-Gram with Particles Without Frequency of Occurrence)
+    # ngramres = list(dict.fromkeys(ngramres))
     return ngramres
 
+def TDMRef(ngramprep2):
+    A = zeros([len(ngramprep2), 1])
+    for i, k in enumerate(ngramprep2):
+        A[i] += 1
+    return A
 
-# run preprocessing
-def preprocessing(text):
-    text = remove_rep(text)
-    romaji = to_romaji(text)
-    # print(romaji)
-    filtering = filter_text(romaji)
-    return filtering
-
-
-def dictionary(sentence):
-    """Magic n-gram function fits to vector indices."""
-    global indices
-    indices = {}
-    i, inp = len(indices) - 1, sentence
-    for n in range(len(tokens)):
-        for x in zip(*[inp[n:]]):
-            if indices.get(x) == None:
-                i += 1
-                indices.update({x: i})
-    return indices
-
-def transform(sentence):
-    """Given a sentence, convert to a gram vector."""
-    v, inp = [0] * len(indices), sentence
-    for n in range(len(tokens)):
-        for x in zip(*[inp[i:] for i in range(n)]):
-            if indices.get(x) != None:
-                v[indices[x]] += 1
-    return v
-
-#cosine
-def scoring1(text1, text2):
-    # scores = []
-    sumxx, sumxy, sumyy = 0, 0, 0
-    for i in range(len(text1)):
-            x = text1[i]
-            y = text2[i]
-            sumxx += x * x
-            sumyy += y * y
-            sumxy += x * y
-            if sumyy == 0:
-                score = 0
+def TDMTest(ngramprep2, ngramprep):
+    if len(ngramprep) == 0:
+        A = [[0.]]
+    else:
+        A = zeros([len(ngramprep), 1])
+        for k in range(len(ngramprep)):
+            if ngramprep[k] in ngramprep2:
+                A[k] += 1
             else:
-                score = sumxy / math.sqrt(sumxx * sumyy)
-            # scores.append(score)
-    return score
+                A[k] = 0
+    return A
 
-#jaccard similarity
-def scoring2(x,y):
-    similar = []
-    for n in range(len(x)):
-        if y[n] == x[n]:
-            similar.append(y[n])
-    jaccard = (len(similar)/len(x))*20
-    # print('---\nsimilar :', similar)
-    return jaccard
+def SVD(A):
+    URef, S, VtRef = svd(A)
+    return S
 
-#Euclidean distance
-def scoring3(x,y):
-    similar = []
-    for n in range(len(x)):
-        if y[n] == x[n]:
-            similar.append(y[n])
-    # jaccard = (len(similar)/len(x))*20
-    # print('---\nsimilar :', similar)
-    return sqrt(sum(pow(a - b, 2) for a, b in zip(x, y)))
-
-#frobenius norm
-def frobeniusNorm(x,y):
-    similar = []
-    for n in range(len(x)):
-        if y[n] == x[n]:
-            similar.append(y[n])
-    # print('---\nsimilar :', similar)
-    fnormRef = sqrt(sum(i * i for i in x))     # find frobenius norm of human rater's answer key
-    fnormTest = sqrt(sum(i * i for i in similar))   # find frobenius norm of student's answer
+def frobeniusNorm(svdkj, svds):
+    fnormRef = sqrt(sum(i * i for i in svdkj))     # find frobenius norm of human rater's answer key
+    fnormTest = sqrt(sum(i * i for i in svds))   # find frobenius norm of student's answer
     fnorm = (fnormTest / fnormRef) * 20                 # calculate score from fnorm
     fnorm = round(fnorm, 2)                             # round to 2 decimal points
     if fnorm > 20:                                      # if score > 20, change it to 20

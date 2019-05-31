@@ -1,81 +1,92 @@
-# import processes as coba #untuk versi diconvert ke romaji
-import processesjp as coba #untuk versi tidak diconvert ke romaji
+import processes as ps
 import time
+import statistics
+from openpyxl import Workbook,load_workbook
 
 startTime = time.time()
 n = 2
 w = 2
 p = 2
-student = 1
+student = 43
 question = 5
 human_rater = [35, 73, 36, 62, 42, 75, 90, 65, 86, 68, 97, 57, 15, 77, 92, 97, 93, 96, 80, 87, 88, 98, 94, 96, 98, 79,
                79, 81, 70, 74, 37, 81, 37, 77, 90, 73, 42, 96, 87, 94, 88, 63, 72]
 
 list_score = []
 
-# jumlah mahasiswa
 for count in range(1, student + 1):
-    print('===========================================================================================================')
-    print("MAHASISWA", count, "\n")
-    # jumlah soal
+    # print('===========================================================================================================')
+    # print("MAHASISWA", count, "\n")
     arr_score = []
     current_score = 0
     score = 0
-    doc = coba.read_txt("mahasiswa" + str(count) + ".docx")
-    # print(doc)
+    doc = ps.read_txt("mahasiswa" + str(count) + ".docx")
     for q in range(0, question):
         kj = 1
         scores = []
-        scores1 = []
-        print('\n\nJAWABAN ', q + 1)
 
         # process the student's answer document
-        prep = coba.preprocessing(doc[q])                       #delete repetitive from question, convert to romaji(if needed), filter text
-        ngramprep = coba.nGram(prep)                            #ngram process
-        # sdict = coba.dictionary(ngramprep)                   #create dictionary from students' answers
+        prep = ps.preprocessing(doc[q])                       #delete repetitive from question, convert to romaji(if needed), filter text
+        ngramprep = ps.nGram(prep)                            #ngram process
 
-        #print all processes' results
-        # print('---\npreprocessing siswa\n', prep)
-        # print('---\nngram siswa\n', ngramprep)
-        # print('---\ndict siswa\n', sdict, '\n')
-        # pemrosesan untuk tiap kunci
-
-        key = coba.read_txt("jwbDosen" + str(q + 1) + ".docx")  #read answer key documents
+        # print('\n\nJAWABAN ', q + 1)
+        key = ps.read_txt("jwbDosen" + str(q + 1) + ".docx")  #read answer key documents
         #for each answer keys (from each questions)
         for x in range(0, len(key)):
-            print('----------------')
-            print('KUNCI JAWABAN '+str(kj))
-
             #process answer keys
-            prep2 = coba.preprocessing(key[x])                  #delete repetitive from question, convert to romaji(if needed), filter text
-            ngramprep2 = coba.nGram(prep2)                      #ngram process
-            kjdict = coba.dictionary(ngramprep2)               #create dictionary from students' answers
-            kjtrans = coba.transform(ngramprep2)
-            strans = coba.transform(ngramprep)
-            # kjdict = coba.dictionary(prep2)  # create dictionary from students' answers
-            # kjtrans = coba.transform(prep2)
-            # strans = coba.transform(prep)
-            scoring = coba.frobeniusNorm(kjtrans,strans)
-            scoring1 = coba.scoring2(kjtrans,strans)
-            scores.append(scoring)
-            scores1.append(scoring1)
+            prep2 = ps.preprocessing(key[x])                  #delete repetitive from question, convert to romaji(if needed), filter text
+            ngramprep2 = ps.nGram(prep2)                      #ngram process
+            tdmkj = ps.TDMRef(ngramprep2)
+            tdms = ps.TDMTest(ngramprep2,ngramprep)
+            svdkj = ps.SVD(tdmkj)
+            svds = ps.SVD(tdms)
+            frobnorm = ps.frobeniusNorm(svdkj,svds)
+            scores.append(frobnorm)
 
             #print all processes' results
+            # print('----------------')
+            # print('KUNCI JAWABAN '+str(kj))
             # print('---\npreprocessing dosen\n', prep2)
             # print('---\npreprocessing siswa\n', prep)
             # print('---\nngram dosen\n', ngramprep2)
-            print('---\nngram siswa\n', ngramprep)
-            print('---\ndict dosen\n', kjdict)
-            print('---\nvector kunci jawaban\n', kjtrans)
-            print('---\nvector siswa\n', strans)
-            # print('---\n(FN) Nilai KJ ke-', kj, '\t: ', scoring)
-            # print('---\n(JC) Nilai KJ ke-', kj, '\t: ', scoring1, '\n---\n')
+            # print('---\nngram siswa\n', ngramprep)
+            # print('---\ntdm kj\n', tdmkj.size)
+            # print('---\ntdm student\n', tdms)
+            # print('---\nSVD KJ: ', svdkj)
+            # print('---\nSVD S: ', svds)
+            # print('---\nNilai KJ ke-', kj, '\t: ', frobnorm)
 
             kj += 1 #loop for each answer keys
-        print('\n\n(JC) Nilai Soal Nomor', q + 1, '\t: ', max(scores1))
-        print('(FN) Nilai Soal Nomor', q + 1,'\t: ', max(scores), '\n--------------------------')
+        # print score of each questions (maximum score from list of each key answers' score)
+        # print('\n\nNilai Soal Nomor', q + 1,'\t: ', max(scores), '\n--------------------------')
+        #add the score of each questions to list of scores of each students
         arr_score.append(max(scores))
-    print('\n\nNILAI MAHASISWA ', count, '\t: ', round(sum(arr_score),2))
+    # print students' score (sum of scores from each questions)
+    # print('\n\nNILAI MAHASISWA ', count, '\t: ', round(sum(arr_score),2))
     list_score.append(round(sum(arr_score),2))
-print("===========================================================================================================\nNilai-nilai siswa: ", list_score)
+akurasi = []
+for n in range(student):
+    acc = round((100 - (((abs(list_score[n] - human_rater[n])) / 100) * 100)),2)
+    akurasi.append(acc)
+print("===========================================================================================================")
+print("Human Rater\t\t\t: ", human_rater)
+print("Nilai-nilai Siswa\t: ", list_score)
+print("Akurasi\t\t\t\t: ", akurasi)
+print("Rata-rata Akurasi\t: ", round(statistics.mean(akurasi),2))
+print("Standar Deviasi\t\t: ", round(statistics.stdev(akurasi),2))
 print("Program Execution Duration: ", (time.time() - startTime), "seconds")
+
+#create excel file of the data
+# wb = Workbook()                                             # Workbook is created
+# wb = load_workbook('data.xlsx')
+# sheet1 = wb.create_sheet("PartFrek", 2)                  # add_sheet is used to create sheet.
+# for n in range(len(human_rater)):
+#     sheet1.cell(row=1, column=1, value='Siswa')
+#     sheet1.cell(row=1, column=2, value='Human Rater Score')
+#     sheet1.cell(row=1, column=3, value='Simple-O Score')
+#     sheet1.cell(row=1, column=4, value='Accuracy')
+#     sheet1.cell(row=n+2, column=1, value=n)
+#     sheet1.cell(row=n+2, column=2, value=human_rater[n])
+#     sheet1.cell(row=n+2, column=3, value=list_score[n])
+#     sheet1.cell(row=n+2, column=4, value=akurasi[n])
+# wb.save('data.xlsx')
