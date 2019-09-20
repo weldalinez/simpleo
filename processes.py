@@ -4,11 +4,9 @@ import docx2txt
 import tinysegmenter
 from math import *
 from numpy import zeros, sum            # library to create a matrix, etc.
-from scipy.linalg import svd            # library for the svd process
+from scipy.linalg import svd,eig            # library for the svd process
 
 kakasi = kakasi()
-# particles = ['ほど','が','か','かしら','かな','かないうちに','がはやいか','から','きり','くらい','けれども','こそ','こと','さ','さえ','し','しか','しかない','すら','ぜ','ぞ','だけ','だけに','だの','たら','たり','で','ては','でも','ても','と','と いう','という','とか','ところ','どころか','ところで','として','とも','ともあろうひと','な','なあ','ながら','など','なら','なり','に','にしては','について','にとって','ね','ねえ','の','ので','のです','のに','のみ','ば','は','ばいい','ばかり','ばかりでなく','ばかりに','へ','ほど','まで','までもない','も','もの','ものか','ものの','や','やいなや','やら','よ','より','わ','を','をする']
-particles = ['hodo','ga','ka','kashira','kana','ka nai uchi ni','ga hayai ka','kara','kiri','kurai','keredomo','koso','koto','sa','sae','shi','shika','shika nai','sura','ze','zo','dake','dake ni','dano','tara','tari','de','tewa','demo','temo','to','to iu','toka','tokoro','dokoro ka','tokoro de','toshite','tomo','tomo aroo hito','na','naa','nagara','nado','nara','nari','ni','ni shite wa','ni tsuite','ni totte','ne','nee','no','node','no desu','noni','nomi','ba','wa','ba','bakari','bakari de naku','bakari ni','e','hodo','made','made mo nai','mo','mono','monoka','mono no','ya','ya ina ya','yara','yo','yori','wa','wo','o','wo suru','o suru']
 
 # read documents, .txt or .docx
 def read_txt(doc):
@@ -17,19 +15,6 @@ def read_txt(doc):
     read = [x for x in read if not x.isdigit()]     # remove number from words
     read = [x for x in read if x]                   # remove empty list
     return read
-
-# Erase the questions' sentences from answers
-def remove_rep(text):
-    rep_words = ["2020年東京オリンピックのマスコットは", "ハラルは", "ハラルというは", "ハラルというのは",
-                 "生前退位は", "生前退位というは", "生前退位というのは",
-                 "衆院選は", "衆院選というは", "衆院選というのは",
-                 "Uターンは", "Uターンのは", "Uターンというは", "Uターンというのは",
-                 "Uターン就職は", "Uターン就職というは", "U-ターン就職というのは"]
-    word_list = set(rep_words)
-    for words in word_list:
-        if words in text:
-            text = text.replace(words, "")
-    return text
 
 #
 def to_romaji(text_jpn):
@@ -46,36 +31,42 @@ def filter_text(romaji):
     words = re.sub('[ ・。、\n]+', '', romaji)  # replace "・", "。", "、", " ", and "\n" with ""
     return words
 
+# Erase the questions' sentences from answers
+def remove_rep(text):
+    rep_words = ["2020年東京オリンピックのマスコットは", "ハラルは", "ハラルというは", "ハラルというのは",
+                 "生前退位は", "生前退位というは", "生前退位というのは",
+                 "衆院選は", "衆院選というは", "衆院選というのは",
+                 "Uターンは", "Uターンのは", "Uターンというは", "Uターンというのは",
+                 "Uターン就職は", "Uターン就職というは", "U-ターン就職というのは"]
+    word_list = set(rep_words)
+    for words in word_list:
+        if words in text:
+            text = text.replace(words, "")
+    return text
+
 # run preprocessing
 def preprocessing(text):
     text = remove_rep(text)
     filtering = filter_text(text)
     romaji = to_romaji(filtering)
-    return romaji
+    ngrams = nGram(romaji)
+    return ngrams
 
 # n gram
 def nGram(text):
     global tokens
-    tokens = tinysegmenter.tokenize(text)
+    tokens = [text for text in text.split(" ") if text != ""]
     # print('---\ntokens\n', tokens)
     global ngramres
     ngramres=[]
-    for n in range(1,len(tokens)):
+    # the number of ngram = (1,2)=unigram, (1,4)=trigram
+    for n in range(1,2):
         for num in range(len(tokens)):
             ngram = ' '.join(tokens[num:num + n])
             if len(ngram.split()) == n:
-                ngram = ngram.replace(" ", "")
+                ngram = ngram.replace(' ', '')
                 ngramres.append(ngram)
-
-    # For Scenario 1 (N-Gram without Particles)
-    # i = 0
-    # while i < len(ngramres):
-    #     if ngramres[i] in particles:
-    #         del ngramres[i]
-    #     else:
-    #         i += 1
-
-    # For Scenario 2 (N-Gram with Particles Without Frequency of Occurrence)
+    # # For Scenario N-Gram with Particles Without Frequency of Occurrence
     # ngramres = list(dict.fromkeys(ngramres))
     return ngramres
 
@@ -102,8 +93,8 @@ def SVD(A):
     return S
 
 def frobeniusNorm(svdkj, svds):
-    fnormRef = sqrt(sum(i * i for i in svdkj))     # find frobenius norm of human rater's answer key
-    fnormTest = sqrt(sum(i * i for i in svds))   # find frobenius norm of student's answer
+    fnormRef = sqrt(sum(i * i for i in svdkj))          # find frobenius norm of human rater's answer key
+    fnormTest = sqrt(sum(i * i for i in svds))          # find frobenius norm of student's answer
     fnorm = (fnormTest / fnormRef) * 20                 # calculate score from fnorm
     fnorm = round(fnorm, 2)                             # round to 2 decimal points
     if fnorm > 20:                                      # if score > 20, change it to 20

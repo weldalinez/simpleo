@@ -11,12 +11,12 @@ student = 43
 question = 5
 human_rater = [35, 73, 36, 62, 42, 75, 90, 65, 86, 68, 97, 57, 15, 77, 92, 97, 93, 96, 80, 87, 88, 98, 94, 96, 98, 79,
                79, 81, 70, 74, 37, 81, 37, 77, 90, 73, 42, 96, 87, 94, 88, 63, 72]
-
+no1 = []
+excel = []
 list_score = []
-
 for count in range(1, student + 1):
-    # print('===========================================================================================================')
-    # print("MAHASISWA", count, "\n")
+    print('===========================================================================================================')
+    print("MAHASISWA", count, "\n")
     arr_score = []
     current_score = 0
     score = 0
@@ -27,41 +27,39 @@ for count in range(1, student + 1):
 
         # process the student's answer document
         prep = ps.preprocessing(doc[q])                       #delete repetitive from question, convert to romaji(if needed), filter text
-        ngramprep = ps.nGram(prep)                            #ngram process
 
-        # print('\n\nJAWABAN ', q + 1)
+        print('\nJAWABAN ', q + 1)
+
         key = ps.read_txt("jwbDosen" + str(q + 1) + ".docx")  #read answer key documents
         #for each answer keys (from each questions)
         for x in range(0, len(key)):
             #process answer keys
             prep2 = ps.preprocessing(key[x])                  #delete repetitive from question, convert to romaji(if needed), filter text
-            ngramprep2 = ps.nGram(prep2)                      #ngram process
-            tdmkj = ps.TDMRef(ngramprep2)
-            tdms = ps.TDMTest(ngramprep2,ngramprep)
+            tdmkj = ps.TDMRef(prep2)
+            tdms = ps.TDMTest(prep2,prep)
             svdkj = ps.SVD(tdmkj)
             svds = ps.SVD(tdms)
             frobnorm = ps.frobeniusNorm(svdkj,svds)
             scores.append(frobnorm)
 
-            #print all processes' results
-            # print('----------------')
-            # print('KUNCI JAWABAN '+str(kj))
-            # print('---\npreprocessing dosen\n', prep2)
-            # print('---\npreprocessing siswa\n', prep)
-            # print('---\nngram dosen\n', ngramprep2)
-            # print('---\nngram siswa\n', ngramprep)
-            # print('---\ntdm kj\n', tdmkj.size)
+            # #print all processes' results
+            print('----------------')
+            print('KUNCI JAWABAN '+str(kj))
+            print('---\npreprocessing dosen\n', prep2)
+            # print('---\ntdm kj\n', tdmkj)
+            print('---\npreprocessing siswa\n', prep)
             # print('---\ntdm student\n', tdms)
-            # print('---\nSVD KJ: ', svdkj)
+            # print('---\nSVD KJ: ', svdkj, "SVD S: ", svds, "Nilai KJ ke-", kj, ": ", frobnorm)
             # print('---\nSVD S: ', svds)
             # print('---\nNilai KJ ke-', kj, '\t: ', frobnorm)
 
             kj += 1 #loop for each answer keys
-        # print score of each questions (maximum score from list of each key answers' score)
+        # # print score of each questions (maximum score from list of each key answers' score)
         # print('\n\nNilai Soal Nomor', q + 1,'\t: ', max(scores), '\n--------------------------')
         #add the score of each questions to list of scores of each students
         arr_score.append(max(scores))
-    # print students' score (sum of scores from each questions)
+        # excel.append(max(scores))
+    # # print students' score (sum of scores from each questions)
     # print('\n\nNILAI MAHASISWA ', count, '\t: ', round(sum(arr_score),2))
     list_score.append(round(sum(arr_score),2))
 akurasi = []
@@ -79,7 +77,12 @@ print("Program Execution Duration: ", (time.time() - startTime), "seconds")
 #create excel file of the data
 # wb = Workbook()                                             # Workbook is created
 # wb = load_workbook('data.xlsx')
-# sheet1 = wb.create_sheet("PartFrek", 2)                  # add_sheet is used to create sheet.
+# sheet1 = wb.create_sheet("Test")                  # add_sheet is used to create sheet.
+# for n in range(1, 43):
+#     for o in range(len(excel)):
+#         for m in range(2,6):
+#             sheet1.cell(row=n, column=1, value=n)
+#             sheet1.cell(row=n, column=m, value=excel[o])
 # for n in range(len(human_rater)):
 #     sheet1.cell(row=1, column=1, value='Siswa')
 #     sheet1.cell(row=1, column=2, value='Human Rater Score')
